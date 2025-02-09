@@ -1,12 +1,20 @@
 use eframe::egui;
 use log::error;
+use std::path::PathBuf;
+
+struct DirectoryItem {
+}
 
 struct ImFlock {
+    base_dir: PathBuf,
+    directory_items: Vec<DirectoryItem>
 }
 
 impl ImFlock {
     fn new() -> Self {
         Self{
+            base_dir: "".into(),
+            directory_items: vec![]
         }
     }
 }
@@ -14,12 +22,14 @@ impl ImFlock {
 impl eframe::App for ImFlock {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            if ui.button("Save graph").clicked() {
-            }
+            display_img(ctx, ui);
         });
 
         ctx.request_repaint();
     }
+}
+
+fn display_img(ctx: &egui::Context, ui: &mut egui::Ui) {
 }
 
 fn main() {
@@ -37,3 +47,4 @@ fn main() {
     )
     .unwrap_or_else(|e| error!("An error occured {}", e));
 }
+
