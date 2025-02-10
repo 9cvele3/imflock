@@ -2,19 +2,25 @@ use eframe::egui;
 use log::error;
 use std::path::PathBuf;
 
-struct DirectoryItem {
-}
-
 struct ImFlock {
     base_dir: PathBuf,
-    directory_items: Vec<DirectoryItem>
+    images: Vec<PathBuf>,
+    current_img_ind: u32,
 }
 
 impl ImFlock {
     fn new() -> Self {
         Self{
             base_dir: "".into(),
-            directory_items: vec![]
+            images: vec![],
+            current_img_ind: 0,
+        }
+    }
+    
+    fn display_img(&self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        let valid_ind = current_img_ind >= 0 && current_img_ind < images.len()
+
+        if valid_ind {
         }
     }
 }
@@ -22,14 +28,43 @@ impl ImFlock {
 impl eframe::App for ImFlock {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            display_img(ctx, ui);
+            self.display_img(ctx, ui);
         });
 
         ctx.request_repaint();
     }
 }
 
-fn display_img(ctx: &egui::Context, ui: &mut egui::Ui) {
+
+
+fn load_image_from_path(path: &std::path::Path) -> Result<egui::ColorImage, image::ImageError> {
+    let mut reader = image::io::Reader::open(path)?;
+    load_egui_image_from_image_reader(reader)
+}
+
+fn load_image_from_bytes(data: &[u8], name: &str) -> Result<egui::ColorImage, image::ImageError> {
+    println!("loading from {} bytes", data.len());
+    let format = image::ImageFormat::from_path(name)?;
+    let mut reader = image::io::Reader::with_format(Cursor::new(data), format);
+    load_egui_image_from_image_reader(reader)
+}
+
+fn load_egui_image_from_image_reader<R: Read + BufRead + Seek>(reader: image::io::Reader<R>) -> Result<egui::ColorImage, image::ImageError> {
+    let image = reader.decode()?;
+    let size = [image.width() as _, image.height() as _];
+    let image_buffer = image.to_rgba8();
+    let px = image_buffer.as_flat_samples();
+    let pixels = px.as_slice()
+        .chunks_exact(4)
+        .map(|p| {
+            let lr = p[0];
+            let lg = p[1];
+            let lb = p[2];
+            egui::Color32::from_rgb(lr, lg, lb)
+        })
+        .collect();
+    let image = egui::ColorImage{size, pixels};
+    Ok(image)
 }
 
 fn main() {
