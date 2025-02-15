@@ -35,7 +35,7 @@ impl ImFlock {
         }
     }
 
-    fn display_img(&self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    fn display_img(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         let valid_ind =
             self.current_img_ind >= 0 && self.current_img_ind < self.images.len() as u32;
 
@@ -46,7 +46,20 @@ impl ImFlock {
                 let texture = ctx.load_texture(format!("thumb"), img, egui::TextureOptions::LINEAR);
                 let sized_texture = egui::load::SizedTexture::from_handle(&texture);
 
+                ui.add(egui::Label::new(img_path.as_os_str().to_str().unwrap()));
                 ui.add(egui::Image::new(sized_texture));
+            }
+
+            if ctx.input(|input_state| input_state.key_pressed(egui::Key::ArrowLeft)) {
+                if self.current_img_ind > 0 {
+                    self.current_img_ind -= 1;
+                }
+            }
+
+            if ctx.input(|input_state| input_state.key_pressed(egui::Key::ArrowRight)) {
+                if self.current_img_ind + 1 < self.images.len() as u32 {
+                    self.current_img_ind += 1;
+                }
             }
         }
     }
