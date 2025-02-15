@@ -1,5 +1,6 @@
 use eframe::egui;
 use log::error;
+use std::fs;
 use std::io::BufRead;
 use std::io::Cursor;
 use std::io::Read;
@@ -14,9 +15,22 @@ struct ImFlock {
 
 impl ImFlock {
     fn new() -> Self {
+        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("dataset");
+
+        let images = fs::read_dir(&base_dir)
+            .unwrap()
+            .filter_map(|item| {
+                if item.is_ok() {
+                    Some(item.unwrap().path())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
         Self {
-            base_dir: "".into(),
-            images: vec![],
+            base_dir,
+            images,
             current_img_ind: 0,
         }
     }
@@ -25,7 +39,16 @@ impl ImFlock {
         let valid_ind =
             self.current_img_ind >= 0 && self.current_img_ind < self.images.len() as u32;
 
-        if valid_ind {}
+        if valid_ind {
+            let img_path = &self.images[self.current_img_ind as usize];
+
+            if let Ok(img) = load_image_from_path(img_path) {
+                let texture = ctx.load_texture(format!("thumb"), img, egui::TextureOptions::LINEAR);
+                let sized_texture = egui::load::SizedTexture::from_handle(&texture);
+
+                ui.add(egui::Image::new(sized_texture));
+            }
+        }
     }
 }
 
