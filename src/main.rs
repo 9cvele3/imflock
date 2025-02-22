@@ -11,6 +11,7 @@ struct ImFlock {
     base_dir: PathBuf,
     images: Vec<PathBuf>,
     current_img_ind: u32,
+    target_dir: String,
 }
 
 impl ImFlock {
@@ -32,6 +33,7 @@ impl ImFlock {
             base_dir,
             images,
             current_img_ind: 0,
+            target_dir: "".to_owned(),
         }
     }
 
@@ -47,17 +49,37 @@ impl ImFlock {
                 let sized_texture = egui::load::SizedTexture::from_handle(&texture);
 
                 ui.add(egui::Label::new(img_path.as_os_str().to_str().unwrap()));
+
+                ui.horizontal(|ui| {
+                    ui.label("Move to directory: ");
+                    let response = ui.add(egui::TextEdit::singleline(&mut self.target_dir));
+
+                    let popup_id = ui.make_persistent_id("my_unique_id");
+
+                    if response.clicked() {
+                        ui.memory_mut(|mem| mem.toggle_popup(popup_id));
+                    }
+
+                    egui::popup::popup_below_widget(ui, popup_id, &response, |ui| {
+                        ui.set_min_width(200.0); // if you want to control the size
+                        ui.label("Some more info, or things you can select:");
+                        ui.label("…");
+                    });
+                });
+
                 ui.add(egui::Image::new(sized_texture));
             }
 
             if ctx.input(|input_state| input_state.key_pressed(egui::Key::ArrowLeft)) {
                 if self.current_img_ind > 0 {
+                    self.target_dir = "".to_owned();
                     self.current_img_ind -= 1;
                 }
             }
 
             if ctx.input(|input_state| input_state.key_pressed(egui::Key::ArrowRight)) {
                 if self.current_img_ind + 1 < self.images.len() as u32 {
+                    self.target_dir = "".to_owned();
                     self.current_img_ind += 1;
                 }
             }
