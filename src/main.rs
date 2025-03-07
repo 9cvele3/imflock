@@ -1,5 +1,7 @@
+use ::egui::Color32;
 use eframe::egui;
 use log::error;
+use std::collections::HashSet;
 use std::fs;
 use std::io::BufRead;
 use std::io::Cursor;
@@ -10,6 +12,7 @@ use std::path::PathBuf;
 struct ImFlock {
     base_dir: PathBuf,
     images: Vec<PathBuf>,
+    directories: HashSet<String>,
     current_img_ind: u32,
     target_dir: String,
 }
@@ -29,9 +32,12 @@ impl ImFlock {
             })
             .collect();
 
+        let directories = HashSet::new();
+
         Self {
             base_dir,
             images,
+            directories,
             current_img_ind: 0,
             target_dir: "".to_owned(),
         }
@@ -52,7 +58,10 @@ impl ImFlock {
 
                 ui.horizontal(|ui| {
                     ui.label("Move to directory: ");
-                    let response = ui.add(egui::TextEdit::singleline(&mut self.target_dir));
+                    let singleline = egui::TextEdit::singleline(&mut self.target_dir);
+                    let response = ui.add(singleline);
+
+                    let enter_pressed = response.ctx.input(|i| i.key_down(egui::Key::Enter));
 
                     let popup_id = ui.make_persistent_id("my_unique_id");
 
@@ -60,10 +69,26 @@ impl ImFlock {
                         ui.memory_mut(|mem| mem.toggle_popup(popup_id));
                     }
 
+                    let move_img_to_folder = |img_filename, dir| {};
+
+                    if enter_pressed {
+                        self.directories.insert(self.target_dir.clone());
+                        move_img_to_folder(img_path, self.target_dir.clone());
+                    }
+
                     egui::popup::popup_below_widget(ui, popup_id, &response, |ui| {
                         ui.set_min_width(200.0); // if you want to control the size
-                        ui.label("Some more info, or things you can select:");
-                        ui.label("…");
+                        ui.style_mut().visuals.widgets.hovered.weak_bg_fill =
+                            eframe::egui::Color32::GRAY;
+
+                        for dir in self.directories.iter() {
+                            if true || dir.starts_with(&self.target_dir) {
+                                if ui.button(dir).clicked() {
+                                    self.target_dir = dir.to_string();
+                                    move_img_to_folder(img_path, dir.clone());
+                                }
+                            }
+                        }
                     });
                 });
 
