@@ -93,7 +93,10 @@ impl ImFlock {
                     });
                 });
 
-                ui.add(egui::Image::new(sized_texture));
+                let img_widget = egui::Image::new(sized_texture)
+                                            .maintain_aspect_ratio(true)
+                                            .max_size(egui::Vec2{x: 300.0, y: 300.0});
+                ui.add(img_widget);
             }
 
             if ctx.input(|input_state| input_state.key_pressed(egui::Key::ArrowLeft)) {
