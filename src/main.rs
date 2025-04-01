@@ -19,7 +19,8 @@ struct ImFlock {
 
 impl ImFlock {
     fn new() -> Self {
-        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("dataset");
+        //let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("dataset");
+        let base_dir = PathBuf::from(std::env::current_dir().unwrap());
 
         let images = fs::read_dir(&base_dir)
             .unwrap()
@@ -115,6 +116,7 @@ impl ImFlock {
 impl eframe::App for ImFlock {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            ui.add(egui::Label::new(format!("Directory: {}", self.base_dir.display())));
             self.display_img(ctx, ui);
         });
 
