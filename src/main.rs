@@ -9,9 +9,13 @@ use std::io::Read;
 use std::io::Seek;
 use std::path::PathBuf;
 
+struct ImgItem {
+    path: PathBuf,
+    labeled: bool
+}
 struct ImFlock {
     base_dir: PathBuf,
-    images: Vec<PathBuf>,
+    images: Vec<ImgItem>,
     directories: HashSet<String>,
     current_img_ind: u32,
     target_dir: String,
@@ -29,7 +33,7 @@ impl ImFlock {
         for direntry in fs::read_dir(&base_dir).unwrap() {
             if let Ok(direntry) = direntry {
                 if direntry.path().is_file() {
-                    images.push(direntry.path());
+                    images.push(ImgItem{ path: direntry.path(), labeled: false });
                 } else if direntry.path().is_dir() {
                     let dirname = direntry.path()
                                     .file_name()
@@ -58,7 +62,7 @@ impl ImFlock {
             self.current_img_ind >= 0 && self.current_img_ind < self.images.len() as u32;
 
         if valid_ind {
-            let img_path = &self.images[self.current_img_ind as usize];
+            let img_path = &self.images[self.current_img_ind as usize].path;
 
             if let Ok(img) = load_image_from_path(img_path) {
                 let texture = ctx.load_texture(format!("thumb"), img, egui::TextureOptions::LINEAR);
