@@ -1,6 +1,6 @@
 use ::egui::Color32;
 use eframe::egui;
-use log::{info, error};
+use log::{info, error, debug};
 use std::collections::HashSet;
 use std::fs;
 use std::io::BufRead;
@@ -24,8 +24,8 @@ struct ImFlock {
 
 impl ImFlock {
     fn new() -> Self {
-        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("dataset");
-        //let base_dir = PathBuf::from(std::env::current_dir().unwrap());
+        //let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("dataset");
+        let base_dir = PathBuf::from(std::env::current_dir().unwrap());
 
         let mut images = vec![];
         let mut directories = HashSet::new();
@@ -169,23 +169,35 @@ impl ImFlock {
     }
 
     fn move_left(&mut self) -> bool {
-        while self.current_img_ind > 0 && self.images[self.current_img_ind as usize].labeled {
+        debug!("Move left: {}", self.current_img_ind);
+
+        if self.current_img_ind > 0 {
             self.target_dir = Default::default();
             self.current_img_ind -= 1;
             info!("Moving left, {}", self.current_img_ind);
+            
+            if self.images[self.current_img_ind as usize].labeled {
+                self.move_left();
+            }
         }
 
-        self.current_img_ind >= 0 && self.current_img_ind < self.images.len() as u32 && self.images[self.current_img_ind as usize].labeled == false
+        self.current_img_ind > 0 && self.current_img_ind < self.images.len() as u32 && self.images[self.current_img_ind as usize].labeled == false
     }
 
     fn move_right(&mut self) -> bool {
-        while self.current_img_ind + 1 < self.images.len() as u32 && self.images[self.current_img_ind as usize].labeled {
+        debug!("Move right: {}", self.current_img_ind);
+
+        if self.current_img_ind + 1 < self.images.len() as u32 {
             self.target_dir = Default::default();
             self.current_img_ind += 1;
             info!("Moving right, {}", self.current_img_ind);
+        
+            if self.images[self.current_img_ind as usize].labeled {
+                self.move_right();
+            }
         }
 
-        self.current_img_ind >= 0 && self.current_img_ind < self.images.len() as u32 && self.images[self.current_img_ind as usize].labeled == false
+        self.current_img_ind > 0 && self.current_img_ind < self.images.len() as u32 && self.images[self.current_img_ind as usize].labeled == false
     }
 
     fn refresh_img(&mut self) {
