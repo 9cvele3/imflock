@@ -22,18 +22,24 @@ impl ImFlock {
         let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("dataset");
         //let base_dir = PathBuf::from(std::env::current_dir().unwrap());
 
-        let images = fs::read_dir(&base_dir)
-            .unwrap()
-            .filter_map(|item| {
-                if item.is_ok() {
-                    Some(item.unwrap().path())
-                } else {
-                    None
-                }
-            })
-            .collect();
+        let mut images = vec![];
+        let mut directories = HashSet::new();
 
-        let directories = HashSet::new();
+        for direntry in fs::read_dir(&base_dir).unwrap() {
+            if let Ok(direntry) = direntry {
+                if direntry.path().is_file() {
+                    images.push(direntry.path());
+                } else if direntry.path().is_dir() {
+                    let dirname = direntry.path()
+                                    .file_name()
+                                    .unwrap()
+                                    .to_str()
+                                    .unwrap()
+                                    .to_string();
+                    directories.insert(dirname);
+                }
+            }
+        }
 
         Self {
             base_dir,
