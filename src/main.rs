@@ -15,6 +15,7 @@ struct ImFlock {
     directories: HashSet<String>,
     current_img_ind: u32,
     target_dir: String,
+    copy_files: bool,
 }
 
 impl ImFlock {
@@ -36,6 +37,7 @@ impl ImFlock {
                                     .to_str()
                                     .unwrap()
                                     .to_string();
+
                     directories.insert(dirname);
                 }
             }
@@ -46,7 +48,8 @@ impl ImFlock {
             images,
             directories,
             current_img_ind: 0,
-            target_dir: Default::default()
+            target_dir: Default::default(),
+            copy_files: false,
         }
     }
 
@@ -92,12 +95,22 @@ impl ImFlock {
                         let filename = img_filename.file_name().unwrap();
                         let dst_path = dir.join(filename);
 
-                        if let Err(e) = fs::rename(img_filename, &dst_path) {
-                            error!("Error while renaming file: {:?}: {:?} -> {:?}", e, img_filename, dst_path);
-                            return false;
+                        if self.copy_files {
+                            if let Err(e) = fs::copy(img_filename, &dst_path) {
+                                error!("Error while copying file: {:?}: {:?} -> {:?}", e, img_filename, dst_path);
+                                return false;
+                            } else {
+                                info!("Copied file {:?} to {:?}", img_filename, dst_path);
+                                return true;
+                            }
                         } else {
-                            info!("Renamed file {:?} to {:?}", img_filename, dst_path);
-                            return true;
+                            if let Err(e) = fs::rename(img_filename, &dst_path) {
+                                error!("Error while renaming file: {:?}: {:?} -> {:?}", e, img_filename, dst_path);
+                                return false;
+                            } else {
+                                info!("Renamed file {:?} to {:?}", img_filename, dst_path);
+                                return true;
+                            }
                         }
                     };
 
@@ -217,6 +230,7 @@ fn load_egui_image_from_image_reader<R: Read + BufRead + Seek>(
 impl eframe::App for ImFlock {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            ui.checkbox(&mut self.copy_files, "Copy files");
             ui.add(egui::Label::new(format!("Directory: {}", self.base_dir.display())));
             self.display_img(ctx, ui);
         });

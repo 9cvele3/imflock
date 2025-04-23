@@ -1,5 +1,5 @@
 * [Done] Collect subdirs on start and offer them as potential labels
-* Add option to copy, and not to move
+* [Done] Add option to copy, and not to move
 * Once moved, update self.images
 
 * Support some kind of descriptor: Vec<u8>
