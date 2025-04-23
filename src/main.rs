@@ -77,14 +77,14 @@ impl ImFlock {
                             return false;
                         }
 
+                        let dir = self.base_dir.join(dir);
+
                         if !dir.exists() {
                             std::fs::create_dir_all(&dir).unwrap();
                         }
 
                         let filename = img_filename.file_name().unwrap();
-                        info!("filename {:?}", filename);
-                        let mut dst_path = PathBuf::from(dir);
-                        dst_path = dst_path.join(filename);
+                        let dst_path = dir.join(filename);
 
                         if let Err(e) = fs::rename(img_filename, &dst_path) {
                             error!("Error while renaming file: {:?}: {:?} -> {:?}", e, img_filename, dst_path);
@@ -97,9 +97,11 @@ impl ImFlock {
 
                     if enter_pressed {
                         self.directories.insert(self.target_dir.clone());
-                        let target_path = PathBuf::from(&self.target_dir);
 
-                        should_refresh = should_refresh || move_img_to_folder(img_path, &target_path);
+                        if !self.target_dir.is_empty() {
+                            let target_path = PathBuf::from(&self.target_dir);
+                            should_refresh = should_refresh || move_img_to_folder(img_path, &target_path);
+                        }
                     }
 
                     egui::popup::popup_below_widget(ui, popup_id, &response, |ui| {
@@ -111,9 +113,11 @@ impl ImFlock {
                             if true || dir.starts_with(&self.target_dir) {
                                 if ui.button(dir).clicked() {
                                     self.target_dir = dir.clone();
-                                    let target_path = PathBuf::from(&self.target_dir);
-                                    
-                                    should_refresh = should_refresh || move_img_to_folder(img_path, &target_path);
+
+                                    if !self.target_dir.is_empty() {
+                                        let target_path = PathBuf::from(&self.target_dir);
+                                        should_refresh = should_refresh || move_img_to_folder(img_path, &target_path);
+                                    }
                                 }
                             }
                         }
