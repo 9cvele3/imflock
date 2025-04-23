@@ -1,6 +1,6 @@
 use ::egui::Color32;
 use eframe::egui;
-use log::error;
+use log::{info, error};
 use std::collections::HashSet;
 use std::fs;
 use std::io::BufRead;
@@ -19,8 +19,8 @@ struct ImFlock {
 
 impl ImFlock {
     fn new() -> Self {
-        //let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("dataset");
-        let base_dir = PathBuf::from(std::env::current_dir().unwrap());
+        let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("dataset");
+        //let base_dir = PathBuf::from(std::env::current_dir().unwrap());
 
         let images = fs::read_dir(&base_dir)
             .unwrap()
@@ -40,7 +40,7 @@ impl ImFlock {
             images,
             directories,
             current_img_ind: 0,
-            target_dir: "".to_owned(),
+            target_dir: Default::default()
         }
     }
 
@@ -56,6 +56,7 @@ impl ImFlock {
                 let sized_texture = egui::load::SizedTexture::from_handle(&texture);
 
                 ui.add(egui::Label::new(img_path.as_os_str().to_str().unwrap()));
+                let mut should_refresh = false;
 
                 ui.horizontal(|ui| {
                     ui.label("Move to directory: ");
@@ -70,11 +71,35 @@ impl ImFlock {
                         ui.memory_mut(|mem| mem.toggle_popup(popup_id));
                     }
 
-                    let move_img_to_folder = |img_filename, dir| {};
+                    let move_img_to_folder = |img_filename: &PathBuf, dir: &PathBuf| -> bool {
+                        if !img_filename.exists() {
+                            error!("Image does not exist");
+                            return false;
+                        }
+
+                        if !dir.exists() {
+                            std::fs::create_dir_all(&dir).unwrap();
+                        }
+
+                        let filename = img_filename.file_name().unwrap();
+                        info!("filename {:?}", filename);
+                        let mut dst_path = PathBuf::from(dir);
+                        dst_path = dst_path.join(filename);
+
+                        if let Err(e) = fs::rename(img_filename, &dst_path) {
+                            error!("Error while renaming file: {:?}: {:?} -> {:?}", e, img_filename, dst_path);
+                            return false;
+                        } else {
+                            info!("Renamed file {:?} to {:?}", img_filename, dst_path);
+                            return true;
+                        }
+                    };
 
                     if enter_pressed {
                         self.directories.insert(self.target_dir.clone());
-                        move_img_to_folder(img_path, self.target_dir.clone());
+                        let target_path = PathBuf::from(&self.target_dir);
+
+                        should_refresh = should_refresh || move_img_to_folder(img_path, &target_path);
                     }
 
                     egui::popup::popup_below_widget(ui, popup_id, &response, |ui| {
@@ -85,13 +110,19 @@ impl ImFlock {
                         for dir in self.directories.iter() {
                             if true || dir.starts_with(&self.target_dir) {
                                 if ui.button(dir).clicked() {
-                                    self.target_dir = dir.to_string();
-                                    move_img_to_folder(img_path, dir.clone());
+                                    self.target_dir = dir.clone();
+                                    let target_path = PathBuf::from(&self.target_dir);
+                                    
+                                    should_refresh = should_refresh || move_img_to_folder(img_path, &target_path);
                                 }
                             }
                         }
                     });
                 });
+
+                if should_refresh {
+                    self.refresh_img();
+                }
 
                 let img_widget = egui::Image::new(sized_texture)
                                             .maintain_aspect_ratio(true)
@@ -100,30 +131,43 @@ impl ImFlock {
             }
 
             if ctx.input(|input_state| input_state.key_pressed(egui::Key::ArrowLeft)) {
-                if self.current_img_ind > 0 {
-                    self.target_dir = "".to_owned();
-                    self.current_img_ind -= 1;
-                }
+                self.move_left();
             }
 
             if ctx.input(|input_state| input_state.key_pressed(egui::Key::ArrowRight)) {
-                if self.current_img_ind + 1 < self.images.len() as u32 {
-                    self.target_dir = "".to_owned();
-                    self.current_img_ind += 1;
-                }
+                self.move_right();
             }
         }
     }
-}
 
-impl eframe::App for ImFlock {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.add(egui::Label::new(format!("Directory: {}", self.base_dir.display())));
-            self.display_img(ctx, ui);
-        });
+    fn move_left(&mut self) -> bool {
+        if self.current_img_ind > 0 {
+            self.target_dir = Default::default();
+            self.current_img_ind -= 1;
+            info!("Moving left, {}", self.current_img_ind);
+            return true;
+        }
 
-        ctx.request_repaint();
+        false
+    }
+
+    fn move_right(&mut self) -> bool {
+        if self.current_img_ind + 1 < self.images.len() as u32 {
+            self.target_dir = Default::default();
+            self.current_img_ind += 1;
+            info!("Moving right, {}", self.current_img_ind);
+            return true;
+        }
+
+        false
+    }
+
+    fn refresh_img(&mut self) {
+        info!("Refresh img");
+
+        if !self.move_left() {
+            self.move_right();
+        }
     }
 }
 
@@ -160,6 +204,17 @@ fn load_egui_image_from_image_reader<R: Read + BufRead + Seek>(
     Ok(image)
 }
 
+impl eframe::App for ImFlock {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.add(egui::Label::new(format!("Directory: {}", self.base_dir.display())));
+            self.display_img(ctx, ui);
+        });
+
+        ctx.request_repaint();
+    }
+}
+
 fn main() {
     env_logger::init();
 
@@ -175,3 +230,6 @@ fn main() {
     )
     .unwrap_or_else(|e| error!("An error occured {}", e));
 }
+
+
+
