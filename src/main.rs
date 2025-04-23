@@ -148,6 +148,7 @@ impl ImFlock {
                 });
 
                 if should_refresh {
+                    self.images[self.current_img_ind as usize].labeled = true;
                     self.refresh_img();
                 }
 
@@ -168,25 +169,23 @@ impl ImFlock {
     }
 
     fn move_left(&mut self) -> bool {
-        if self.current_img_ind > 0 {
+        while self.current_img_ind > 0 && self.images[self.current_img_ind as usize].labeled {
             self.target_dir = Default::default();
             self.current_img_ind -= 1;
             info!("Moving left, {}", self.current_img_ind);
-            return true;
         }
 
-        false
+        self.current_img_ind >= 0 && self.current_img_ind < self.images.len() as u32 && self.images[self.current_img_ind as usize].labeled == false
     }
 
     fn move_right(&mut self) -> bool {
-        if self.current_img_ind + 1 < self.images.len() as u32 {
+        while self.current_img_ind + 1 < self.images.len() as u32 && self.images[self.current_img_ind as usize].labeled {
             self.target_dir = Default::default();
             self.current_img_ind += 1;
             info!("Moving right, {}", self.current_img_ind);
-            return true;
         }
 
-        false
+        self.current_img_ind >= 0 && self.current_img_ind < self.images.len() as u32 && self.images[self.current_img_ind as usize].labeled == false
     }
 
     fn refresh_img(&mut self) {
