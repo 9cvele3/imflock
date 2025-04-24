@@ -34,7 +34,16 @@ impl ImFlock {
                 let path = direntry.path();
 
                 if path.is_file() {
-                    images.push(ImgItem{ path, labeled: false });
+                    if let Some(extension) = path.extension() {
+
+                        if extension == "jpg" || extension == "png" {
+                            images.push(ImgItem{ path, labeled: false });
+                        } else {
+                            debug!("Invalid extension {:?}", extension);
+                        }
+                    } else {
+                        debug!("No extension for {:?}", path);
+                    }
                 } else if path.is_dir() {
                     let dirname = path
                                     .file_name()
