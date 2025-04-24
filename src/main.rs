@@ -24,7 +24,6 @@ struct ImFlock {
 
 impl ImFlock {
     fn new() -> Self {
-        //let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("dataset");
         let base_dir = PathBuf::from(std::env::current_dir().unwrap());
 
         let mut images = vec![];
@@ -32,10 +31,12 @@ impl ImFlock {
 
         for direntry in fs::read_dir(&base_dir).unwrap() {
             if let Ok(direntry) = direntry {
-                if direntry.path().is_file() {
-                    images.push(ImgItem{ path: direntry.path(), labeled: false });
-                } else if direntry.path().is_dir() {
-                    let dirname = direntry.path()
+                let path = direntry.path();
+
+                if path.is_file() {
+                    images.push(ImgItem{ path, labeled: false });
+                } else if path.is_dir() {
+                    let dirname = path
                                     .file_name()
                                     .unwrap()
                                     .to_str()
